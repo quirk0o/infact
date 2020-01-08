@@ -1,0 +1,49 @@
+{
+  "name": "infact",
+  "version": "0.0.0",
+  "description": "",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier --write **/*.{ts,js,css,json,md}",
+    "prepare": "npm run build",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quirk0o/infact.git"
+  },
+  "keywords": [
+    "factory"
+  ],
+  "author": "quirk0o",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/quirk0o/infact/issues"
+  },
+  "homepage": "https://github.com/quirk0o/infact#readme",
+  "devDependencies": {
+    "@types/jest": "^24.0.25",
+    "husky": "^4.0.1",
+    "jest": "^24.9.0",
+    "lint-staged": "^9.5.0",
+    "prettier": "1.19.1",
+    "ts-jest": "^24.3.0",
+    "typescript": "^3.7.4"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,js,css,json,md}": [
+      "prettier --write",
+      "git add"
+    ]
+  }
+}
