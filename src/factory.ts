@@ -1,15 +1,15 @@
 type PartialRecord<K extends keyof any, T> = Partial<Record<K, T>>
 type AnyClass<T extends object = any> = { new (): T }
 
+type AfterCallback<A, O, R extends A = A> = (
+  entity: A,
+  evaluator: A & O
+) => R | void
 type Definition<A, O, R extends A[keyof A]> = (attrs: Partial<A & O>) => R
 type OptionDefinition<O, R extends O[keyof O]> = () => R
 type SequenceDefinition<A, R extends A[keyof A]> = (n: number) => R
 
-export class Factory<
-  A = Record<string, any>,
-  O = Record<string, any>,
-  C extends object = object
-> {
+export class Factory<A = Record<string, any>, O = Record<string, any>> {
   private attributes: {
     key: keyof A
     definition: Definition<A, O, any>
@@ -23,12 +23,28 @@ export class Factory<
     definition: SequenceDefinition<A, any>
     seq: number
   }[] = []
+  private afterCallbacks: AfterCallback<A, O>[] = []
 
-  static create() {
-    return new Factory()
+  static create<A = Record<string, any>, O = Record<string, any>>() {
+    return new Factory<A, O>()
+  }
+
+  static compose<A = Record<string, any>, O = Record<string, any>>(
+    ...factories: Factory<Partial<A>, Partial<O>>[]
+  ) {
+    return Factory.create<A, O>().compose(...factories)
   }
 
   constructor() {}
+
+  compose(...factories: Factory<Partial<A>, Partial<O>>[]): this {
+    this.attributes = this.attributes.concat(
+      ...factories.map(f => f.attributes)
+    )
+    this.sequences = this.sequences.concat(...factories.map(f => f.sequences))
+    this.options = this.options.concat(...factories.map(f => f.options))
+    return this
+  }
 
   build(overrides?: A & O): A {
     let optionsProperties = this.options
@@ -104,7 +120,19 @@ export class Factory<
     )
     evaluator = Object.create(null, evaluatorProperties)
 
-    return Object.create(null, entityProperties)
+    const entity = Object.create(null, entityProperties)
+    const modifiedEntity = this.afterCallbacks.reduce(
+      (newEntity, callback) => callback(newEntity, evaluator),
+      entity
+    )
+
+    return modifiedEntity || entity
+  }
+
+  buildList(n: number, overrides?: A & O): A[] {
+    return Array(n)
+      .fill(null)
+      .map(() => this.build(overrides))
   }
 
   sequence<T extends A[keyof A]>(
@@ -138,7 +166,8 @@ export class Factory<
     return this
   }
 
-  after(): this {
+  after(callback: AfterCallback<A, O>): this {
+    this.afterCallbacks.push(callback)
     return this
   }
 }
