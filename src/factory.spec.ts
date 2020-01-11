@@ -11,24 +11,21 @@ describe('Factory', () => {
     it('combines a set of factories', () => {
       const CatFactory = new Factory().attr('name')(() => 'Bibi')
       const SpiderFactory = new Factory().attr('canItSwing')(() => true)
-      const SpiderCatFactory = Factory.compose(
-        CatFactory,
-        SpiderFactory
-      )
+      const SpiderCatFactory = Factory.compose(CatFactory, SpiderFactory)
 
-      const spiderCat = SpiderCatFactory.build()
+      const spiderCat = SpiderCatFactory.buildOne()
 
       expect(spiderCat).toEqual({ name: 'Bibi', canItSwing: true })
     })
   })
 
-  describe('.build', () => {
+  describe('.buildOne', () => {
     it('builds object with set attributes', () => {
       const CatFactory = new Factory()
         .attr('name')(() => 'Bibi')
         .attr('age')(() => 3)
 
-      const cat = CatFactory.build()
+      const cat = CatFactory.buildOne()
 
       expect(cat).toEqual({
         name: 'Bibi',
@@ -41,7 +38,7 @@ describe('Factory', () => {
         .attr('name')(() => 'Bibi')
         .attr('age')(() => 3)
 
-      const cat = CatFactory.build({ age: 4 })
+      const cat = CatFactory.buildOne({ age: 4 })
 
       expect(cat).toEqual({
         name: 'Bibi',
@@ -58,7 +55,7 @@ describe('Factory', () => {
           (new Date(2019, 7, 13).getTime() - birthday.getTime()) / 1000 / 60 / 60 / 24 / 365
       )
 
-      const cat = CatFactory.build()
+      const cat = CatFactory.buildOne()
 
       expect(cat).toEqual({
         name: 'Bibi',
@@ -69,9 +66,9 @@ describe('Factory', () => {
     it('passes attributes to attribute definition', () => {
       const CatFactory = new Factory()
         .attr('name')(() => 'Bibi')
-        .attr('fullName')(({name}) => `${name} The Cat`)
+        .attr('fullName')(({ name }) => `${name} The Cat`)
 
-      const cat = CatFactory.build()
+      const cat = CatFactory.buildOne()
 
       expect(cat).toEqual({
         name: 'Bibi',
@@ -84,7 +81,7 @@ describe('Factory', () => {
         .sequence('name')(n => `Cat #${n + 1}`)
         .attr('fullName')(({ name }) => `${name} Potato`)
 
-      const cat = CatFactory.build()
+      const cat = CatFactory.buildOne()
 
       expect(cat).toEqual({
         name: 'Cat #1',
@@ -95,8 +92,10 @@ describe('Factory', () => {
     it('increments sequence on every build', () => {
       const CatFactory = new Factory().sequence('name')(n => `Cat #${n + 1}`)
 
-      const cat = CatFactory.build()
+      const cat = CatFactory.build().next().value
       const anotherCat = CatFactory.build()
+        .next()
+        .next().value
 
       expect(cat).toEqual({ name: 'Cat #1' })
       expect(anotherCat).toEqual({ name: 'Cat #2' })
@@ -111,7 +110,7 @@ describe('Factory', () => {
           (new Date(2019, 7, 13).getTime() - birthday.getTime()) / 1000 / 60 / 60 / 24 / 365
       )
 
-      const cat = CatFactory.build({ birthday: new Date(2016, 7, 13) })
+      const cat = CatFactory.buildOne({ birthday: new Date(2016, 7, 13) })
 
       expect(cat).toEqual({
         name: 'Bibi',
@@ -133,22 +132,7 @@ describe('Factory', () => {
         .option('hungry')(() => true)
         .after(afterCallback)
 
-      const cat = CatFactory.build()
-
-      expect(afterCallback).toHaveBeenCalled()
-      expect(cat).toEqual({ name: 'Bibi', meowing: true })
-    })
-
-    it('invokes after callbacks and returns initial object when nothing is returned', () => {
-      const afterCallback = jest.fn().mockImplementation((cat, evaluator) => {
-        if (evaluator.hungry) cat.meowing = true
-      })
-      const CatFactory = new Factory()
-        .attr('name')(() => 'Bibi')
-        .option('hungry')(() => true)
-        .after(afterCallback)
-
-      const cat = CatFactory.build()
+      const cat = CatFactory.buildOne()
 
       expect(afterCallback).toHaveBeenCalled()
       expect(cat).toEqual({ name: 'Bibi', meowing: true })
@@ -163,7 +147,7 @@ describe('Factory', () => {
             }
           : cat
       )
-      const afterCallbackName = jest.fn().mockImplementation((cat) =>
+      const afterCallbackName = jest.fn().mockImplementation(cat =>
         cat.meowing
           ? {
               ...cat,
@@ -177,7 +161,7 @@ describe('Factory', () => {
         .after(afterCallbackMeowing)
         .after(afterCallbackName)
 
-      const cat = CatFactory.build()
+      const cat = CatFactory.buildOne()
 
       expect(afterCallbackMeowing).toHaveBeenCalled()
       expect(afterCallbackName).toHaveBeenCalled()
