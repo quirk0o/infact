@@ -92,8 +92,8 @@ describe('Factory', () => {
     it('increments sequence on every build', () => {
       const CatFactory = new Factory().sequence('name')(n => `Cat #${n + 1}`)
 
-      const cat = CatFactory.build().next().value
-      const anotherCat = CatFactory.build()
+      const cat = CatFactory.gen().next().value
+      const anotherCat = CatFactory.gen()
         .next()
         .next().value
 
