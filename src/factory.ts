@@ -172,7 +172,7 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
     return take(n)(this.gen(overrides))
   }
 
-  sequence<K extends keyof TRes>(
+  seq<K extends keyof TRes>(
     key: K
   ): (definition: (n: number, attrs: TRes & TTrans) => TRes[K]) => Factory<TRes, TTrans> {
     return definition => {
@@ -183,7 +183,7 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
     }
   }
 
-  option<K extends keyof TTrans>(
+  opt<K extends keyof TTrans>(
     key: K
   ): (definition: (attrs: TRes & TTrans) => TTrans[K]) => Factory<TRes, TTrans> {
     return definition => {

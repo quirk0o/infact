@@ -48,7 +48,7 @@ describe('Factory', () => {
 
     it('passes options to attribute definition', () => {
       const CatFactory = new Factory()
-        .option('birthday')(() => new Date(2017, 7, 13))
+        .opt('birthday')(() => new Date(2017, 7, 13))
         .attr('name')(() => 'Bibi')
         .attr('age')(
         ({ birthday }) =>
@@ -78,7 +78,7 @@ describe('Factory', () => {
 
     it('passes sequences to attribute definition', () => {
       const CatFactory = new Factory()
-        .sequence('name')(n => `Cat #${n + 1}`)
+        .seq('name')(n => `Cat #${n + 1}`)
         .attr('fullName')(({ name }) => `${name} Potato`)
 
       const cat = CatFactory.buildOne()
@@ -90,7 +90,7 @@ describe('Factory', () => {
     })
 
     it('increments sequence on every build', () => {
-      const CatFactory = new Factory().sequence('name')(n => `Cat #${n + 1}`)
+      const CatFactory = new Factory().seq('name')(n => `Cat #${n + 1}`)
 
       const cat = CatFactory.gen().next().value
       const anotherCat = CatFactory.gen()
@@ -103,7 +103,7 @@ describe('Factory', () => {
 
     it('uses option overrides to build object', () => {
       const CatFactory = new Factory()
-        .option('birthday')(() => new Date(2017, 7, 13))
+        .opt('birthday')(() => new Date(2017, 7, 13))
         .attr('name')(() => 'Bibi')
         .attr('age')(
         ({ birthday }) =>
@@ -129,7 +129,7 @@ describe('Factory', () => {
       )
       const CatFactory = new Factory()
         .attr('name')(() => 'Bibi')
-        .option('hungry')(() => true)
+        .opt('hungry')(() => true)
         .after(afterCallback)
 
       const cat = CatFactory.buildOne()
@@ -157,7 +157,7 @@ describe('Factory', () => {
       )
       const CatFactory = new Factory()
         .attr('name')(() => 'Bibi')
-        .option('hungry')(() => true)
+        .opt('hungry')(() => true)
         .after(afterCallbackMeowing)
         .after(afterCallbackName)
 
@@ -172,7 +172,7 @@ describe('Factory', () => {
   describe('.buildList', () => {
     it('builds a list of entities', () => {
       const CatFactory = new Factory<{ name: string; sound: string }>()
-        .sequence('name')(n => `Cat #${n + 1}`)
+        .seq('name')(n => `Cat #${n + 1}`)
         .attr('sound')(() => 'meow')
 
       const cats = CatFactory.buildList(3)
