@@ -119,7 +119,7 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
     )
   }
 
-  buildOne(overrides?: TRes & TTrans): TRes {
+  build(overrides?: TRes & TTrans): TRes {
     return this.gen(overrides).next().value
   }
 

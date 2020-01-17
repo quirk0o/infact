@@ -13,19 +13,19 @@ describe('Factory', () => {
       const SpiderFactory = new Factory().attr('canItSwing')(() => true)
       const SpiderCatFactory = Factory.compose(CatFactory, SpiderFactory)
 
-      const spiderCat = SpiderCatFactory.buildOne()
+      const spiderCat = SpiderCatFactory.build()
 
       expect(spiderCat).toEqual({ name: 'Bibi', canItSwing: true })
     })
   })
 
-  describe('.buildOne', () => {
+  describe('.build', () => {
     it('builds object with set attributes', () => {
       const CatFactory = new Factory()
         .attr('name')(() => 'Bibi')
         .attr('age')(() => 3)
 
-      const cat = CatFactory.buildOne()
+      const cat = CatFactory.build()
 
       expect(cat).toEqual({
         name: 'Bibi',
@@ -38,7 +38,7 @@ describe('Factory', () => {
         .attr('name')(() => 'Bibi')
         .attr('age')(() => 3)
 
-      const cat = CatFactory.buildOne({ age: 4 })
+      const cat = CatFactory.build({ age: 4 })
 
       expect(cat).toEqual({
         name: 'Bibi',
@@ -55,7 +55,7 @@ describe('Factory', () => {
           (new Date(2019, 7, 13).getTime() - birthday.getTime()) / 1000 / 60 / 60 / 24 / 365
       )
 
-      const cat = CatFactory.buildOne()
+      const cat = CatFactory.build()
 
       expect(cat).toEqual({
         name: 'Bibi',
@@ -68,7 +68,7 @@ describe('Factory', () => {
         .attr('name')(() => 'Bibi')
         .attr('fullName')(({ name }) => `${name} The Cat`)
 
-      const cat = CatFactory.buildOne()
+      const cat = CatFactory.build()
 
       expect(cat).toEqual({
         name: 'Bibi',
@@ -81,7 +81,7 @@ describe('Factory', () => {
         .seq('name')(n => `Cat #${n + 1}`)
         .attr('fullName')(({ name }) => `${name} Potato`)
 
-      const cat = CatFactory.buildOne()
+      const cat = CatFactory.build()
 
       expect(cat).toEqual({
         name: 'Cat #1',
@@ -110,7 +110,7 @@ describe('Factory', () => {
           (new Date(2019, 7, 13).getTime() - birthday.getTime()) / 1000 / 60 / 60 / 24 / 365
       )
 
-      const cat = CatFactory.buildOne({ birthday: new Date(2016, 7, 13) })
+      const cat = CatFactory.build({ birthday: new Date(2016, 7, 13) })
 
       expect(cat).toEqual({
         name: 'Bibi',
@@ -132,7 +132,7 @@ describe('Factory', () => {
         .opt('hungry')(() => true)
         .after(afterCallback)
 
-      const cat = CatFactory.buildOne()
+      const cat = CatFactory.build()
 
       expect(afterCallback).toHaveBeenCalled()
       expect(cat).toEqual({ name: 'Bibi', meowing: true })
@@ -161,7 +161,7 @@ describe('Factory', () => {
         .after(afterCallbackMeowing)
         .after(afterCallbackName)
 
-      const cat = CatFactory.buildOne()
+      const cat = CatFactory.build()
 
       expect(afterCallbackMeowing).toHaveBeenCalled()
       expect(afterCallbackName).toHaveBeenCalled()
