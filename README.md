@@ -172,6 +172,50 @@ const cat = CatFactory.build({ hungry: true })
 // { name: 'Fluffy' }
 ```
 
+### Traits
+
+Traits allow you to set up common modifications of your object that can be applied by passing the name of the trait to `build`.
+The trait supports all the methods supported by Factory (`attr`, `seq` and `opt`).
+The attribute overrides argument needs to follow the traits.
+
+```js
+const CatFactory = Factory.create()
+  .attr('name')(() => 'Fluffy')
+  .attr('age')(() => 4)
+  .trait('super')(t => t.attr('name')(() => 'Super Fluffy'))
+
+CatFactory.build()
+// { name: 'Fluffy' }
+CatFactory.build('super', { age: 3 })
+// { name: 'Super Fluffy', age: 3 }
+```
+
+You can pass as many traits as you want to `build`.
+
+```js
+const CatFactory = Factory.create()
+  .attr('name')(() => 'Fluffy')
+  .trait('super')(t => t.attr('name')(() => 'Super Fluffy'))
+  .trait('hungry')(t => t.attr('hungry')(() => true))
+
+CatFactory.build('super', 'hungry', { age: 3 })
+// { name: 'Super Fluffy', hungry: true, age: 3 }
+```
+
+You can also construct a trait yourself and pass it as argument to `trait`. This can come in handy if you want to compose traits.
+
+```js
+const SuperTrait = Trait.create().attr('power')(() => 'Superpower')
+const SpiderTrait = Trait.create().attr('canSwing')(() => true)
+
+const SuperSpiderTrait = Trait.compose(SuperTrait, SpiderTrait)
+
+const CatFactory = Factory.create().trait('super')(SuperSpiderTrait)
+
+CatFactory.build('super')
+// { power: 'Superpower', canSwing: true }
+```
+
 ## Advanced Usage
 
 The method `gen` returns a generator that provides a `next` method which will return a new entity on every call.
@@ -184,8 +228,9 @@ const CatFactory = Factory.create().seq('id')(n => n)
 const catGenerator = CatFactory.gen()
 catGenerator.next().value
 // { id: 0 }
-catGenerator.next().value
+const { next, value: cat1 } = catGenerator.next()
+cat1
 // { id: 0 }
-catGenerator.next().next().value
+next().value
 // { id: 1 }
 ```
