@@ -6,7 +6,7 @@ export type Dict = { [key: string]: any }
 export type AfterCallback<TRes, TTrans, R extends TRes = TRes> = (
   entity: TRes,
   evaluator: TRes & TTrans
-) => R
+) => R | null | undefined
 
 export enum AttributeType {
   Sequence = 'SEQ',
@@ -29,6 +29,7 @@ export type SequenceDefinition<TRes = Dict, TTrans = Dict> = {
   key: keyof TRes
   get: (n: number, attrs: TRes & TTrans) => TRes[keyof TRes]
   seq: number
+  step: number
 }
 export type TransientDefinition<TRes = Dict, TTrans = Dict> = {
   type: AttributeType.Transient

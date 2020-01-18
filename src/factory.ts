@@ -137,7 +137,7 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
 
     const entity = Object.create(null, entityDescriptorMap)
     const modifiedEntity = callbacks.reduce(
-      (newEntity, callback) => callback(newEntity, evaluator),
+      (newEntity, callback) => callback(newEntity, evaluator) || entity,
       entity
     )
 
@@ -147,12 +147,7 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
         this.doGen(
           traits,
           attributes.map(attr =>
-            isSequence(attr)
-              ? {
-                  ...attr,
-                  seq: attr.seq + 1
-                }
-              : attr
+            isSequence(attr) ? { ...attr, seq: attr.seq + attr.step } : attr
           ),
           callbacks,
           nextOverrides || overrides
@@ -165,12 +160,20 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
   }
 
   seq<K extends keyof TRes>(
-    key: K
+    key: K,
+    initial: number = 0,
+    step: number = 1
   ): (definition: (n: number, attrs: TRes & TTrans) => TRes[K]) => Factory<TRes, TTrans> {
     return definition => {
       return new Factory(
         this.traits,
-        this.attributes.concat({ type: AttributeType.Sequence, key, get: definition, seq: 0 }),
+        this.attributes.concat({
+          type: AttributeType.Sequence,
+          key,
+          get: definition,
+          seq: initial,
+          step
+        }),
         this.callbacks
       )
     }

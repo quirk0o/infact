@@ -32,11 +32,19 @@ export class Trait<TRes extends object = Dict, TTrans extends object = Dict> {
   }
 
   seq<K extends keyof TRes>(
-    key: K
+    key: K,
+    initial: number = 0,
+    step: number = 1
   ): (definition: (n: number, attrs: TRes & TTrans) => TRes[K]) => Trait<TRes, TTrans> {
     return definition => {
       return new Trait(
-        this.attributes.concat({ type: AttributeType.Sequence, key, get: definition, seq: 0 })
+        this.attributes.concat({
+          type: AttributeType.Sequence,
+          key,
+          step,
+          get: definition,
+          seq: initial
+        })
       )
     }
   }

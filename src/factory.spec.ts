@@ -90,18 +90,6 @@ describe('Factory', () => {
       })
     })
 
-    it('increments sequence on every build', () => {
-      const CatFactory = new Factory().seq('name')(n => `Cat #${n + 1}`)
-
-      const cat = CatFactory.gen().next().value
-      const anotherCat = CatFactory.gen()
-        .next()
-        .next().value
-
-      expect(cat).toEqual({ name: 'Cat #1' })
-      expect(anotherCat).toEqual({ name: 'Cat #2' })
-    })
-
     it('uses option overrides to build object', () => {
       const CatFactory = new Factory()
         .opt('birthday')(() => new Date(2017, 7, 13))
@@ -119,74 +107,137 @@ describe('Factory', () => {
       })
     })
 
-    it('invokes after callbacks and returns modified object', () => {
-      const afterCallback = jest.fn().mockImplementation((cat, evaluator) =>
-        evaluator.hungry
-          ? {
-              ...cat,
-              meowing: true
-            }
-          : cat
-      )
-      const CatFactory = new Factory()
-        .attr('name')(() => 'Bibi')
-        .opt('hungry')(() => true)
-        .after(afterCallback)
+    describe('.buildList', () => {
+      it('builds a list of entities', () => {
+        const CatFactory = new Factory<{ name: string; sound: string }>()
+          .seq('name')(n => `Cat #${n + 1}`)
+          .attr('sound')(() => 'meow')
 
-      const cat = CatFactory.build()
+        const cats = CatFactory.buildList(3)
 
-      expect(afterCallback).toHaveBeenCalled()
-      expect(cat).toEqual({ name: 'Bibi', meowing: true })
+        expect(cats).toEqual([
+          { name: 'Cat #1', sound: 'meow' },
+          { name: 'Cat #2', sound: 'meow' },
+          { name: 'Cat #3', sound: 'meow' }
+        ])
+      })
     })
 
-    it('invokes after callbacks in order they are added', () => {
-      const afterCallbackMeowing = jest.fn().mockImplementation((cat, evaluator) =>
-        evaluator.hungry
-          ? {
-              ...cat,
-              meowing: true
-            }
-          : cat
-      )
-      const afterCallbackName = jest.fn().mockImplementation(cat =>
-        cat.meowing
-          ? {
-              ...cat,
-              name: `Meowing ${cat.name}`
-            }
-          : cat
-      )
-      const CatFactory = new Factory()
-        .attr('name')(() => 'Bibi')
-        .opt('hungry')(() => true)
-        .after(afterCallbackMeowing)
-        .after(afterCallbackName)
+    describe('.seq', () => {
+      it('increments sequence on every build', () => {
+        const CatFactory = new Factory().seq('name')(n => `Cat #${n + 1}`)
 
-      const cat = CatFactory.build()
+        const cat = CatFactory.gen().next().value
+        const anotherCat = CatFactory.gen()
+          .next()
+          .next().value
 
-      expect(afterCallbackMeowing).toHaveBeenCalled()
-      expect(afterCallbackName).toHaveBeenCalled()
-      expect(cat).toEqual({ name: 'Meowing Bibi', meowing: true })
+        expect(cat).toEqual({ name: 'Cat #1' })
+        expect(anotherCat).toEqual({ name: 'Cat #2' })
+      })
+
+      describe('when initial value and step provided', () => {
+        it('increments sequence by step on every build', () => {
+          const CatFactory = new Factory().seq('name', 1, 2)(n => `Cat #${n}`)
+
+          const cat = CatFactory.gen().next().value
+          const anotherCat = CatFactory.gen()
+            .next()
+            .next().value
+
+          expect(cat).toEqual({ name: 'Cat #1' })
+          expect(anotherCat).toEqual({ name: 'Cat #3' })
+        })
+      })
     })
-  })
 
-  describe('.buildList', () => {
-    it('builds a list of entities', () => {
-      const CatFactory = new Factory<{ name: string; sound: string }>()
-        .seq('name')(n => `Cat #${n + 1}`)
-        .attr('sound')(() => 'meow')
+    describe('.after', () => {
+      describe('after build', () => {
+        it('invokes after callbacks and returns modified object', () => {
+          const afterCallback = jest.fn().mockImplementation((cat, evaluator) =>
+            evaluator.hungry
+              ? {
+                  ...cat,
+                  meowing: true
+                }
+              : cat
+          )
+          const CatFactory = new Factory()
+            .attr('name')(() => 'Bibi')
+            .opt('hungry')(() => true)
+            .after(afterCallback)
 
-      const cats = CatFactory.buildList(3)
+          const cat = CatFactory.build()
 
-      expect(cats).toEqual([
-        { name: 'Cat #1', sound: 'meow' },
-        { name: 'Cat #2', sound: 'meow' },
-        { name: 'Cat #3', sound: 'meow' }
-      ])
+          expect(afterCallback).toHaveBeenCalled()
+          expect(cat).toEqual({ name: 'Bibi', meowing: true })
+        })
+
+        it('invokes after callbacks in order they are added', () => {
+          const afterCallbackMeowing = jest.fn().mockImplementation((cat, evaluator) =>
+            evaluator.hungry
+              ? {
+                  ...cat,
+                  meowing: true
+                }
+              : cat
+          )
+          const afterCallbackName = jest.fn().mockImplementation(cat =>
+            cat.meowing
+              ? {
+                  ...cat,
+                  name: `Meowing ${cat.name}`
+                }
+              : cat
+          )
+          const CatFactory = new Factory()
+            .attr('name')(() => 'Bibi')
+            .opt('hungry')(() => true)
+            .after(afterCallbackMeowing)
+            .after(afterCallbackName)
+
+          const cat = CatFactory.build()
+
+          expect(afterCallbackMeowing).toHaveBeenCalled()
+          expect(afterCallbackName).toHaveBeenCalled()
+          expect(cat).toEqual({ name: 'Meowing Bibi', meowing: true })
+        })
+
+        it('returns unmodified object when nothing is returned from callback', () => {
+          const callback = jest.fn()
+          const CatFactory = new Factory()
+            .attr('name')(() => 'Bibi')
+            .after(callback)
+
+          const cat = CatFactory.build()
+          expect(callback).toHaveBeenCalled()
+          expect(cat).toEqual({ name: 'Bibi' })
+        })
+      })
     })
   })
 
   describe('.trait', () => {
+    it('supports all attribute methods of Factory', () => {
+      const CatFactory = new Factory().trait('super')(t =>
+        t
+          .seq(
+            'snacksEaten',
+            1,
+            2
+          )(n => n)
+          .attr('name')(({ hungry }) => (hungry ? 'Hungry Bibi' : 'Super Bibi'))
+          .opt('hungry')(() => false)
+      )
+
+      const cat = CatFactory.build('super', { hungry: true })
+
+      expect(cat).toEqual({
+        snacksEaten: 1,
+        name: 'Hungry Bibi'
+      })
+    })
+
     describe('when passed a function', () => {
       it('creates a new trait', () => {
         const CatFactory = new Factory()

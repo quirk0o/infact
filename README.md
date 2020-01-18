@@ -97,6 +97,15 @@ const cats = CatFactory.buildList(2)
 // [{ name: 'Cat #1' }, { name: 'Cat #1 }]
 ```
 
+All sequences start from 0 and increment by 1 by default by you can optionally provide the initial value and step as arguments to `seq`.
+
+```js
+const CatFactory = Factory.create().seq('speed', 0, 10)(n => n)
+
+const cats = CatFactory.buildList(2)
+// [{ speed: 0 }, { speed: 10 }]
+```
+
 Note that sequences will not be incremented when building a single object. For this usage check [Advanced Usage](#advanced-usage).
 
 ```js
