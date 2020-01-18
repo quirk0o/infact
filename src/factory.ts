@@ -1,44 +1,19 @@
 import { lazyPropertyDescriptor, propertyDescriptor } from './object'
 import { generator, Generator, GeneratorResult, take } from './generator'
-import { mergeAll, path } from './util'
-
-type Dict = { [key: string]: any }
-
-type AfterCallback<TRes, TTrans, R extends TRes = TRes> = (
-  entity: TRes,
-  evaluator: TRes & TTrans
-) => R
-
-enum AttributeType {
-  Sequence = 'SEQ',
-  Property = 'PROP',
-  Transient = 'TRANS'
-}
-
-type AttributeDefinition<TRes = Dict, TTrans = Dict> =
-  | PropertyDefinition<TRes, TTrans>
-  | SequenceDefinition<TRes, TTrans>
-  | TransientDefinition<TRes, TTrans>
-
-type PropertyDefinition<TRes = Dict, TTrans = Dict> = {
-  type: AttributeType.Property
-  key: keyof TRes
-  get: (attrs: TRes & TTrans) => TRes[keyof TRes]
-}
-type SequenceDefinition<TRes = Dict, TTrans = Dict> = {
-  type: AttributeType.Sequence
-  key: keyof TRes
-  get: (n: number, attrs: TRes & TTrans) => TRes[keyof TRes]
-  seq: number
-}
-type TransientDefinition<TRes = Dict, TTrans = Dict> = {
-  type: AttributeType.Transient
-  key: keyof TTrans
-  get: (attrs: TRes & TTrans) => TTrans[keyof TTrans]
-}
-
-type AttributesOf<F> = F extends Factory<infer A, any> ? A : never
-type OptionsOf<F> = F extends Factory<any, infer O> ? O : never
+import { concat, concatAll, isObject, mergeAll, path } from './util'
+import {
+  AfterCallback,
+  AttributeDefinition,
+  AttributesOf,
+  AttributeType,
+  Dict,
+  OptionsOf,
+  PropertyDefinition,
+  SequenceDefinition,
+  TraitFactory,
+  TransientDefinition
+} from './types'
+import { Trait } from './trait'
 
 const isSequence = <TRes, TTrans>(
   attribute: AttributeDefinition<TRes, TTrans>
@@ -97,6 +72,7 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
   }
 
   constructor(
+    private traits: Record<string, Trait<Partial<TRes>, Partial<TTrans>>> = {},
     private attributes: AttributeDefinition<TRes, TTrans>[] = [],
     private callbacks: AfterCallback<TRes, TTrans>[] = []
   ) {}
@@ -106,39 +82,54 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
   ): Factory<TRes & AttributesOf<F>, TTrans & OptionsOf<F>> {
     type AF = AttributesOf<F>
     type AO = OptionsOf<F>
-    type AR = TRes & AttributesOf<F>
-    type OR = TTrans & OptionsOf<F>
+    type AR = TRes & AF
+    type OR = TTrans & AO
     return new Factory<AR, OR>(
-      (this.attributes as (
-        | AttributeDefinition<TRes, TTrans>
-        | AttributeDefinition<AF, AO>
-      )[]).concat(factory.attributes),
-      (this.callbacks as (AfterCallback<TRes, TTrans> | AfterCallback<AF, AO>)[]).concat(
+      Object.assign({}, this.traits, factory.traits),
+      concat<AttributeDefinition<TRes, TTrans>, any, AR>(this.attributes, factory.attributes),
+      concat<AfterCallback<TRes, TTrans>, AfterCallback<any, any>, AfterCallback<AR, OR>>(
+        this.callbacks,
         factory.callbacks
-      ) as AfterCallback<AR, OR>[]
+      )
     )
   }
 
-  build(overrides?: TRes & TTrans): TRes {
-    return this.gen(overrides).next().value
+  build(...traitsAndOverrides: ((TRes & TTrans) | string)[]): TRes {
+    return this.gen(...traitsAndOverrides).next().value
   }
 
-  gen(overrides?: TRes & TTrans): Generator<TRes, TRes & TTrans> {
+  gen(...traitsAndOverrides: ((TRes & TTrans) | string)[]): Generator<TRes, TRes & TTrans> {
+    const overrides = (isObject(traitsAndOverrides[traitsAndOverrides.length - 1])
+      ? traitsAndOverrides[traitsAndOverrides.length - 1]
+      : {}) as TRes & TTrans
+    const traits = traitsAndOverrides.slice(0, traitsAndOverrides.length - 1) as string[]
+
     return generator<TRes, TRes & TTrans>(nextOverrides =>
-      this.doGen(this.attributes, this.callbacks, nextOverrides || overrides)
+      this.doGen(traits, this.attributes, this.callbacks, nextOverrides || overrides)
     )
   }
 
   private doGen(
+    traits: string[],
     attributes: AttributeDefinition<TRes, TTrans>[] = [],
     callbacks: AfterCallback<TRes, TTrans>[] = [],
     overrides?: TRes & TTrans
   ): GeneratorResult<TRes, TRes & TTrans> {
     let evaluator: TRes & TTrans
 
-    const options = descriptors(transientDefs(attributes), () => evaluator, overrides)
-    const sequences = sequenceDescriptors(sequenceDefs(attributes), () => evaluator, overrides)
-    const properties = descriptors(propertyDefs(attributes), () => evaluator, overrides)
+    const attributesWithTraits = concatAll<
+      AttributeDefinition<TRes, TTrans>,
+      AttributeDefinition<Partial<TRes>, Partial<TTrans>>,
+      AttributeDefinition<TRes, TTrans>
+    >(attributes, ...traits.map(name => this.traits[name].attributes))
+
+    const options = descriptors(transientDefs(attributesWithTraits), () => evaluator, overrides)
+    const sequences = sequenceDescriptors(
+      sequenceDefs(attributesWithTraits),
+      () => evaluator,
+      overrides
+    )
+    const properties = descriptors(propertyDefs(attributesWithTraits), () => evaluator, overrides)
 
     const entityDescriptorMap = Object.assign({}, mergeAll(...properties), mergeAll(...sequences))
     const evaluatorDescriptorMap = Object.assign({}, entityDescriptorMap, mergeAll(...options))
@@ -154,6 +145,7 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
       value: modifiedEntity,
       next: nextOverrides =>
         this.doGen(
+          traits,
           attributes.map(attr =>
             isSequence(attr)
               ? {
@@ -168,8 +160,8 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
     }
   }
 
-  buildList(n: number, overrides?: TRes & TTrans): TRes[] {
-    return take(n)(this.gen(overrides))
+  buildList(n: number, ...traitsAndOverrides: ((TRes & TTrans) | string)[]): TRes[] {
+    return take(n)(this.gen(...traitsAndOverrides))
   }
 
   seq<K extends keyof TRes>(
@@ -177,6 +169,7 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
   ): (definition: (n: number, attrs: TRes & TTrans) => TRes[K]) => Factory<TRes, TTrans> {
     return definition => {
       return new Factory(
+        this.traits,
         this.attributes.concat({ type: AttributeType.Sequence, key, get: definition, seq: 0 }),
         this.callbacks
       )
@@ -188,6 +181,7 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
   ): (definition: (attrs: TRes & TTrans) => TTrans[K]) => Factory<TRes, TTrans> {
     return definition => {
       return new Factory(
+        this.traits,
         this.attributes.concat({ type: AttributeType.Transient, key, get: definition }),
         this.callbacks
       )
@@ -199,17 +193,27 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
   ): (definition: (attrs: TRes & TTrans) => TRes[K]) => Factory<TRes, TTrans> {
     return definition => {
       return new Factory(
+        this.traits,
         this.attributes.concat({ type: AttributeType.Property, key, get: definition }),
         this.callbacks
       )
     }
   }
 
-  trait(): this {
-    return this
+  trait(name: string) {
+    return (
+      trait: Trait<Partial<TRes>, Partial<TTrans>> | TraitFactory<this>
+    ): Factory<TRes, TTrans> =>
+      new Factory(
+        Object.assign({}, this.traits, {
+          [name]: trait instanceof Trait ? trait : trait(new Trait())
+        }) as Record<string, Trait<Partial<TRes>, Partial<TTrans>>>,
+        this.attributes,
+        this.callbacks
+      )
   }
 
   after(callback: AfterCallback<TRes, TTrans>): Factory<TRes, TTrans> {
-    return new Factory(this.attributes, this.callbacks.concat(callback))
+    return new Factory(this.traits, this.attributes, this.callbacks.concat(callback))
   }
 }

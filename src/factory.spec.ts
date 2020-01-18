@@ -1,4 +1,5 @@
 import { Factory } from './factory'
+import { Trait } from './trait'
 
 describe('Factory', () => {
   describe('#create', () => {
@@ -182,6 +183,73 @@ describe('Factory', () => {
         { name: 'Cat #2', sound: 'meow' },
         { name: 'Cat #3', sound: 'meow' }
       ])
+    })
+  })
+
+  describe('.trait', () => {
+    describe('when passed a function', () => {
+      it('creates a new trait', () => {
+        const CatFactory = new Factory()
+          .attr('name')(() => 'Bibi')
+          .attr('age')(() => 4)
+          .trait('super')(t =>
+          t
+            .attr('name')(() => 'Super Bibi')
+            .attr('power')(() => 'High Pitched Meow')
+        )
+
+        const cat = CatFactory.build('super', { age: 3 })
+
+        expect(cat).toEqual({
+          name: 'Super Bibi',
+          age: 3,
+          power: 'High Pitched Meow'
+        })
+      })
+    })
+
+    describe('when passed a trait', () => {
+      it('uses the trait', () => {
+        const CatFactory = new Factory()
+          .attr('name')(() => 'Bibi')
+          .attr('age')(() => 4)
+          .trait('super')(
+          new Trait()
+            .attr('name')(() => 'Super Bibi')
+            .attr('power')(() => 'High Pitched Meow')
+        )
+
+        const cat = CatFactory.build('super', { age: 3 })
+
+        expect(cat).toEqual({
+          name: 'Super Bibi',
+          age: 3,
+          power: 'High Pitched Meow'
+        })
+      })
+    })
+
+    describe('when passed a mixed trait', () => {
+      it('uses the trait', () => {
+        const SuperTrait = new Trait().attr('power')(() => 'Superpower')
+        const SpiderTrait = new Trait().attr('canSwing')(() => true)
+
+        const SuperSpiderTrait = Trait.compose(SuperTrait, SpiderTrait)
+
+        const SpiderCatFactory = new Factory()
+          .attr('name')(() => 'Bibi')
+          .attr('age')(() => 4)
+          .trait('super')(SuperSpiderTrait)
+
+        const cat = SpiderCatFactory.build('super', { age: 3 })
+
+        expect(cat).toEqual({
+          name: 'Bibi',
+          age: 3,
+          power: 'Superpower',
+          canSwing: true
+        })
+      })
     })
   })
 })
