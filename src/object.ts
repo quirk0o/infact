@@ -7,10 +7,17 @@ export const propertyDescriptor = (key: string | number | symbol, value: any) =>
   }
 })
 
-export const lazyPropertyDescriptor = (key: string | number | symbol, get: () => any) => ({
-  [key]: {
-    get,
-    enumerable: true,
-    configurable: false
+export const lazyPropertyDescriptor = (key: string | number | symbol, get: () => any) => {
+  let value: any
+  const getter = () => {
+    value = value || get()
+    return value
   }
-})
+  return {
+    [key]: {
+      get: getter,
+      enumerable: true,
+      configurable: false
+    }
+  }
+}
