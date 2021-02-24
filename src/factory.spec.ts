@@ -254,6 +254,15 @@ describe('Factory', () => {
       })
     })
 
+    it('overrides previously declared attributes', () => {
+      const CatFactory = new Factory()
+        .attr('sound')(() => 'meow')
+        .trait('mad')(t => t.attr('sound')(() => 'raaawrr'))
+
+      expect(CatFactory.build()).toEqual({ sound: 'meow' })
+      expect(CatFactory.build('mad')).toEqual({ sound: 'raaawrr' })
+    })
+
     describe('when passed a function', () => {
       it('creates a new trait', () => {
         const CatFactory = new Factory()

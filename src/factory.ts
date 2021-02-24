@@ -99,10 +99,14 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
   }
 
   gen(...traitsAndOverrides: ((TRes & TTrans) | string)[]): Generator<TRes, TRes & TTrans> {
-    const overrides = (isObject(traitsAndOverrides[traitsAndOverrides.length - 1])
+    const hasOverrides = isObject(traitsAndOverrides[traitsAndOverrides.length - 1])
+    const overrides = (hasOverrides
       ? traitsAndOverrides[traitsAndOverrides.length - 1]
       : {}) as TRes & TTrans
-    const traits = traitsAndOverrides.slice(0, traitsAndOverrides.length - 1) as string[]
+    const traits = traitsAndOverrides.slice(
+      0,
+      hasOverrides ? traitsAndOverrides.length - 1 : traitsAndOverrides.length
+    ) as string[]
 
     return generator<TRes, TRes & TTrans>(nextOverrides =>
       this.doGen(traits, this.attributes, this.callbacks, nextOverrides || overrides)
