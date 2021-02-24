@@ -94,11 +94,11 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
     )
   }
 
-  build(...traitsAndOverrides: ((TRes & TTrans) | string)[]): TRes {
+  build = (...traitsAndOverrides: ((TRes & TTrans) | string)[]): TRes => {
     return this.gen(...traitsAndOverrides).next().value
   }
 
-  gen(...traitsAndOverrides: ((TRes & TTrans) | string)[]): Generator<TRes, TRes & TTrans> {
+  gen = (...traitsAndOverrides: ((TRes & TTrans) | string)[]): Generator<TRes, TRes & TTrans> => {
     const hasOverrides = isObject(traitsAndOverrides[traitsAndOverrides.length - 1])
     const overrides = (hasOverrides
       ? traitsAndOverrides[traitsAndOverrides.length - 1]
@@ -159,7 +159,7 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
     }
   }
 
-  buildList(n: number, ...traitsAndOverrides: ((TRes & TTrans) | string)[]): TRes[] {
+  buildList = (n: number, ...traitsAndOverrides: ((TRes & TTrans) | string)[]): TRes[] => {
     return take(n)(this.gen(...traitsAndOverrides))
   }
 
