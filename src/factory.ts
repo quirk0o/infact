@@ -148,7 +148,7 @@ export class Factory<TRes extends object = Dict, TTrans extends object = Dict> {
     )
 
     return {
-      value: modifiedEntity,
+      value: { ...modifiedEntity },
       next: nextOverrides =>
         this.doGen(
           traits,

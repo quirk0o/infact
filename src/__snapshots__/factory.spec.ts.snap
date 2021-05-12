@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Factory .build returns a plain JS object 1`] = `{ name: 'Bibi', fullName: 'Fluffy Bibi' }`;

@@ -1,5 +1,11 @@
 import { Factory } from './factory'
 import { Trait } from './trait'
+import * as util from 'util'
+
+expect.addSnapshotSerializer({
+  test: val => val,
+  print: (val: any) => util.format(val)
+})
 
 describe('Factory', () => {
   describe('#create', () => {
@@ -121,6 +127,14 @@ describe('Factory', () => {
         name: 'Bibi',
         fullName: 'Fluffy Bibi'
       })
+    })
+
+    it('returns a plain JS object', () => {
+      const CatFactory = new Factory()
+        .attr('name')(() => 'Bibi')
+        .attr('fullName')(({ name }) => `Fluffy ${name}`)
+
+      expect(CatFactory.build()).toMatchSnapshot()
     })
   })
 
